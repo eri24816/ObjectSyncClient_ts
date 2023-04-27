@@ -1,0 +1,1 @@
+import {ObjectSyncClient} from './client';
