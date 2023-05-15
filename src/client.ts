@@ -35,6 +35,12 @@ export class ObjectSyncClient{
             (id: string) => {
                 const obj = this.objects.get(id)!;
                 obj.onDestroy();
+                // Clean up attributes
+                this.chatroom.allSubscribedTopics.forEach((topic: Topic<any>) => {
+                    if (topic.getName().startsWith(`a/${id}/`)){
+                        this.chatroom.unsubscribe(topic.getName());
+                    }
+                });
                 this.objects.delete(id);
             }
         );
@@ -79,5 +85,23 @@ export class ObjectSyncClient{
     /* Encapsulate ChatRoom */
     public getTopic<T extends Topic<any>>(topicName: string,topicType?: string|Constructor<T>): T {
         return this.chatroom.getTopic(topicName,topicType);
+    }
+
+    public unsubscribe(topic: Topic<any>): void{
+        this.chatroom.unsubscribe(topic.getName());
+    }
+
+    public undo(obj:SObject|null): void{
+        if (obj)
+            this.chatroom.makeRequest('undo',{id:obj.id});
+        else
+            this.chatroom.makeRequest('undo',{});
+    }
+
+    public redo(obj:SObject|null): void{
+        if (obj)
+            this.chatroom.makeRequest('redo',{id:obj.id});
+        else
+            this.chatroom.makeRequest('redo',{});
     }
 }

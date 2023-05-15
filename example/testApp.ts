@@ -35,6 +35,10 @@ abstract class ElementObject extends SObject{
         }
         htmlParent.element.appendChild(this.element);
     }
+    onDestroy(): void{
+        super.onDestroy();
+        this.element.remove();
+    }
 }
 
 class DivObject extends ElementObject{
@@ -45,6 +49,7 @@ class TextObject extends ElementObject{
     protected readonly _element = document.createElement('span')
     private readonly text = this.getAttribute('text',StringTopic);
     constructor(objectsync: ObjectSyncClient, id: string){
+        console.log('text created',id);
         super(objectsync,id);
         this.text.onSet.add((newValue: string) => {
             this._element.innerText = newValue;

@@ -18,15 +18,15 @@ export class SObject{
     constructor(objectsync: ObjectSyncClient, id: string){
         this.objectsync = objectsync;
         this._id = id;
-        this.parent_id = objectsync.getTopic(`_/${id}/parent_id`,StringTopic);
-        if (this.id != 'root')
+        this.parent_id = objectsync.getTopic(`parent_id/${id}`,StringTopic);
+        if (!this.isRoot)
             this.parent_id.onSet2.add((oldValue: string, newValue: string) => {
                 this.onParentChanged(this.objectsync.getObject_u(oldValue),this.objectsync.getObject(newValue));
             });
     }
 
     public getAttribute<T extends Topic<any>>(topicName: string,topicType?: string|Constructor<T>): T {
-        return this.objectsync.getTopic(`${this.id}/${topicName}`,topicType);
+        return this.objectsync.getTopic(`a/${this.id}/${topicName}`,topicType);
     }
 
     /**
@@ -38,5 +38,8 @@ export class SObject{
     onParentChanged(oldValue: SObject|undefined, newValue: SObject): void{
     }
 
-    onDestroy(): void{}
+    onDestroy(): void{
+        //unsubscribe from all topics
+        this.objectsync.unsubscribe(this.parent_id);
+    }
 }
