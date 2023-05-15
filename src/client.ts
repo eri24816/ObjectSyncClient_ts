@@ -1,8 +1,6 @@
-import { ChatroomClient, DictTopic, EventTopic, SetTopic, Topic } from "chatroom-client/src"
+import { ChatroomClient, DictTopic, Topic } from "chatroom-client/src"
 import { SObject } from "./sobject";
 import { Constructor } from "chatroom-client/src/utils"
-import { v4 as uuidv4 } from 'uuid';
-import { config } from "./config";
 
 
 export class ObjectSyncClient{
@@ -10,7 +8,6 @@ export class ObjectSyncClient{
     private readonly object_types: Map<string,Constructor<SObject>> = new Map();
     private readonly objects: Map<string,SObject> = new Map();
     private objects_topic: DictTopic<string,string>|null = null;
-    private id_counter: number = 1;
     constructor(host: string,object_types?: Map<string,Constructor<SObject>>){
         this.chatroom = new ChatroomClient(host);
         this.chatroom.onConnected(() => {
@@ -44,14 +41,6 @@ export class ObjectSyncClient{
                 this.objects.delete(id);
             }
         );
-
-        this.chatroom.on('create_object', 
-            // unpack data
-            ({id,parent_id}:{'id':string,'parent_id':string}) => {
-                //TODO: Simulate what the server would do
-
-            }
-        );
     }
 
     public addObjectType(type: string, constructor: Constructor<SObject>): void{
@@ -59,14 +48,7 @@ export class ObjectSyncClient{
     }
     
     public createObject(type:string,parent:string): void{
-        let id = '';
-        if(config.id_method == 'increment'){
-            id = (this.id_counter++).toString();
-        }
-        else{
-            id = uuidv4().replace(/-/g,'');
-        }
-        this.chatroom.emit('create_object',{id:id,type:type,parent_id:parent});
+        this.chatroom.emit('create_object',{type:type,parent_id:parent});
     }
 
     public destroyObject(id:string): void{
