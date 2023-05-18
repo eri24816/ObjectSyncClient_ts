@@ -58,7 +58,7 @@ class TextObject extends ElementObject{
 }
 
 const object_types = new Map<string,typeof SObject>();
-object_types.set('root',RootObject);
+object_types.set('Root',RootObject);
 object_types.set('div',DivObject);
 object_types.set('text',TextObject);
 

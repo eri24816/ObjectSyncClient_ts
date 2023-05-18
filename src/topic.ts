@@ -1,0 +1,135 @@
+import { Change, DictTopic, ListTopic, SetTopic } from "chatroom-client"
+import { SObject } from "./sobject"
+import { Action } from "chatroom-client/src/utils"
+
+export class ObjListTopic<T extends SObject = SObject>{
+    onSet: Action<[T[]]> = new Action();
+    onSet2: Action<[T[]]> = new Action();
+    onInsert: Action<[T]> = new Action();
+    onPop: Action<[T]> = new Action();
+    constructor(topic: ListTopic,map: (id:string)=>T){
+        this._topic = topic;
+        this._map = map;
+        this._topic.onSet.add((value)=>this.onSet.invoke(value.map(this._map)));
+        this._topic.onSet2.add((value)=>this.onSet2.invoke(value.map(this._map)));
+        this._topic.onInsert.add((value)=>this.onInsert.invoke(this._map(value)));
+        this._topic.onPop.add((value)=>this.onPop.invoke(this._map(value)));
+    }
+    _topic: ListTopic;
+    _map: (id:string)=>T;
+
+    set(value:T[]){
+        return this._topic.set(value.map(x=>x.id));
+    }
+
+    insert(object:T, position: number = -1){
+        return this._topic.insert(object.id, position);
+    }
+    pop (position: number = -1){
+        return this._map(this._topic.pop(position));
+    }
+    remove(object:T){
+        return this._topic.remove(object.id);
+    }
+    getitem(key:number){
+        return this._map(this._topic.getitem(key));
+    }
+    setitem(key:number, value:T){
+        return this._topic.setitem(key, value.id);
+    }
+    getValue(){
+        return this._topic.getValue().map(this._map);
+    }
+    [Symbol.iterator](){
+        return this._topic.getValue().map(this._map)[Symbol.iterator]();
+    }
+
+}
+
+
+export class ObjSetTopic<T extends SObject = SObject>{
+    onSet: Action<[T[]]> = new Action();
+    onSet2: Action<[T[]]> = new Action();
+    onAppend: Action<[T]> = new Action();
+    onRemove: Action<[T]> = new Action();
+    constructor(topic: SetTopic,map: (id:string)=>T){
+        this._topic = topic;
+        this._map = map;
+        this._topic.onSet.add((value)=>this.onSet.invoke(value.map(this._map)));
+        this._topic.onSet2.add((value)=>this.onSet2.invoke(value.map(this._map)));
+        this._topic.onAppend.add((value)=>this.onAppend.invoke(this._map(value)));
+        this._topic.onRemove.add((value)=>this.onRemove.invoke(this._map(value)));
+    }
+    _topic: SetTopic;
+    _map: (id:string)=>T;
+
+    set(value:T[]){
+        return this._topic.set(value.map(x=>x.id));
+    }
+
+    append(object:T){
+        return this._topic.append(object.id);
+    }
+    remove(object:T){
+        return this._topic.remove(object.id);
+    }
+    getValue(){
+        return this._topic.getValue().map(this._map);
+    }
+}
+
+
+export class ObjDictTopic<K extends string|number|symbol,T extends SObject = SObject>{
+    onSet: Action<[Map<K,T>]> = new Action();
+    onSet2: Action<[Map<K,T>,Map<K,T>]> = new Action();
+    onAdd: Action<[K,T]> = new Action();
+    onRemove: Action<[K]> = new Action();
+    onChangeValue: Action<[K,T]> = new Action();
+    constructor(topic: DictTopic<K,string>,map: (id:string)=>T){
+        this._topic = topic;
+        this._map = map;
+        this._topic.onSet.add((value)=>this.onSet.invoke(this._mapDict(value)));
+        this._topic.onSet2.add((old_value,new_value)=>this.onSet2.invoke(this._mapDict(old_value),this._mapDict(new_value)));
+        this._topic.onAdd.add((key,value)=>this.onAdd.invoke(key,this._map(value)));
+        this._topic.onRemove.add((key:K)=>this.onRemove.invoke(key));
+        this._topic.onChangeValue.add((key,value)=>this.onChangeValue.invoke(key,this._map(value)));
+    }
+    _topic: DictTopic<K,string>;
+    _map: (id:string)=>T;
+    _mapDict(dict:Map<K,string>){
+        let new_dict:Map<K,T> = new Map();
+        for(let [key,value] of dict.entries()){
+            new_dict.set(key,this._map(value));
+        }
+        return new_dict;
+    }
+    
+    set(value:Map<K,T>){
+        let new_dict:Map<K,string> = new Map();
+        for(let [key,value_] of value.entries()){
+            new_dict.set(key,value_.id);
+        }
+        return this._topic.set(new_dict);
+    }
+
+    changeValue(key:K, value:T){
+        return this._topic.changeValue(key, value.id);
+    }
+    
+    add(key:K, value:T){
+        return this._topic.add(key, value.id);
+    }
+
+    remove(key:K){
+        return this._topic.remove(key);
+    }
+
+    getitem(){
+        return this._mapDict(this._topic.getValue());
+    }
+
+    getValue(){
+        return this._mapDict(this._topic.getValue());
+    }
+
+}

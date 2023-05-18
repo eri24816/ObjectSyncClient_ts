@@ -1,6 +1,7 @@
-import { IntTopic, Topic, StringTopic } from "chatroom-client/src"
+import { IntTopic, Topic, StringTopic, ListTopic, SetTopic, DictTopic } from "chatroom-client/src"
 import { ObjectSyncClient } from "./client"
 import { Constructor } from "chatroom-client/src/utils"
+import {ObjSetTopic, ObjListTopic, ObjDictTopic} from './topic';
 
 export class SObject{
     private readonly _id
@@ -15,6 +16,8 @@ export class SObject{
     }
     private readonly objectsync;
     private readonly parent_id;
+    private readonly children: Set<SObject> = new Set();
+
     constructor(objectsync: ObjectSyncClient, id: string){
         this.objectsync = objectsync;
         this._id = id;
@@ -25,8 +28,18 @@ export class SObject{
             });
     }
 
-    public getAttribute<T extends Topic<any>>(topicName: string,topicType?: string|Constructor<T>): T {
-        return this.objectsync.getTopic(`a/${this.id}/${topicName}`,topicType);
+    public getAttribute<T extends Topic<any>|ObjListTopic<any>|ObjSetTopic<any>|ObjDictTopic<any>>(topicName: string,topicType?: string|Constructor<T>): T {
+        if (topicType == ObjListTopic){
+            return new ObjListTopic(this.objectsync.getTopic(`a/${this.id}/${topicName}`,ListTopic),this.objectsync.getObject.bind(this.objectsync)) as T;
+        }
+        if (topicType == ObjSetTopic){
+            return new ObjSetTopic(this.objectsync.getTopic(`a/${this.id}/${topicName}`,SetTopic),this.objectsync.getObject.bind(this.objectsync)) as T;
+        }
+        if (topicType == ObjDictTopic){
+            return new ObjDictTopic(this.objectsync.getTopic(`a/${this.id}/${topicName}`,DictTopic<string,string>),this.objectsync.getObject.bind(this.objectsync)) as T;
+        }
+
+        return this.objectsync.getTopic(`a/${this.id}/${topicName}`,topicType as any) as T;
     }
 
     /**
@@ -36,10 +49,34 @@ export class SObject{
      * @param newValue 
      */
     onParentChanged(oldValue: SObject|undefined, newValue: SObject): void{
+        if (oldValue)
+            oldValue.removeChild(this);
+        newValue.addChild(this);
     }
 
     onDestroy(): void{
         //unsubscribe from all topics
         this.objectsync.unsubscribe(this.parent_id);
+    }
+
+    public addChild(child: SObject): void{
+        this.children.add(child);
+    }
+
+    public removeChild(child: SObject): void{
+        this.children.delete(child);
+    }
+
+    public getChildren(): Set<SObject>{
+        return this.children;
+    }
+
+    public getChildrenOfType<T extends SObject>(type: Constructor<T>): Set<T>{
+        let result = new Set<T>();
+        for (let child of this.children){
+            if (child instanceof type)
+                result.add(child);
+        }
+        return result;
     }
 }

@@ -1,7 +1,7 @@
 {
   "name": "objectsync-client",
   "version": "0.3.0",
-  "main": "index.ts",
+  "main": "src/index.ts",
   "license": "MIT",
   "devDependencies": {
     "@web/dev-server": "^0.1.35",
@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@types/uuid": "^9.0.1",
+    "chatroom-client": "file:../ChatRoomClient_ts",
     "uuid": "^9.0.0"
   }
 }

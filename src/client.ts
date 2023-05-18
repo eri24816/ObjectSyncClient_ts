@@ -16,6 +16,9 @@ export class ObjectSyncClient{
         if(object_types){
             this.object_types = object_types;
         }
+        if(!this.object_types.has('Root')){
+            this.object_types.set('Root',SObject);
+        }
     }
 
     private defineTransitions(): void{
@@ -41,6 +44,10 @@ export class ObjectSyncClient{
                 this.objects.delete(id);
             }
         );
+    }
+
+    public register(constructor: Constructor<SObject>): void{
+        this.addObjectType(constructor.name,constructor);
     }
 
     public addObjectType(type: string, constructor: Constructor<SObject>): void{
