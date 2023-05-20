@@ -24,7 +24,7 @@ abstract class ElementObject extends SObject{
     public get element() {
         return this._element
     }
-    onParentChanged(oldParent: SObject, newParent: SObject): void{
+    onParentChangedTp(oldParent: SObject, newParent: SObject): void{
         let htmlParent = newParent;
         while(!(htmlParent instanceof ElementObject)){
             if (htmlParent.isRoot){

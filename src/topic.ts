@@ -1,6 +1,37 @@
-import { Change, DictTopic, ListTopic, SetTopic } from "chatroom-client"
+import { Change, DictTopic, ListTopic, SetTopic, StringTopic } from "chatroom-client"
 import { SObject } from "./sobject"
 import { Action } from "chatroom-client/src/utils"
+
+export class ObjectTopic<T extends SObject = SObject>{
+    onSet: Action<[T]> = new Action();
+    onSet2: Action<[T,T]> = new Action();
+    constructor(topic: StringTopic,map: (id:string)=>T){
+        this._topic = topic;
+        this._map = map;
+        this._topic.onSet.add((value)=>this.onSet.invoke(this.map(value)));
+        this._topic.onSet2.add((old_value,new_value)=>this.onSet2.invoke(this.map(old_value),this.map(new_value)));
+    }
+    _topic: StringTopic;
+    _map: (id:string)=>T;
+
+    set(value:T){
+        if(value == null)
+            return this._topic.set('');
+        return this._topic.set(value.id);
+    }
+    getValue():T{
+        return this.map(this._topic.getValue());
+    }
+    map(value:string){
+        try{
+            return this._map(value);
+        }
+        catch(e){
+            return null as any; // Pretending this is C# ouo
+        }
+    }
+
+}
 
 export class ObjListTopic<T extends SObject = SObject>{
     onSet: Action<[T[]]> = new Action();
