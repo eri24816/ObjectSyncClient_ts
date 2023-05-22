@@ -10,13 +10,16 @@ export class ObjectSyncClient{
     private readonly object_types: Map<string,Constructor<SObject>> = new Map();
     private readonly objects: Map<string,SObject> = new Map();
     private objects_topic: DictTopic<string,string>|null = null;
+
     record: (callback?: (() => void) | undefined, pretend?: boolean | undefined) => void
     clearPretendedChanges: () => void
+    doAfterTransitionFinish: (callback: () => any) => void
+
     constructor(host: string,object_types?: Map<string,Constructor<SObject>>){
         this.chatroom = new ChatroomClient(host);
         this.record = this.chatroom.record;
         this.clearPretendedChanges = this.chatroom.clearPretendedChanges;
-
+        this.doAfterTransitionFinish = this.chatroom.doAfterTransitionFinish;
         this.chatroom.onConnected(() => {
             this.defineTransitions();
         });
@@ -32,12 +35,15 @@ export class ObjectSyncClient{
         // callbacks go brrrr
         this.getTopic('create_object',EventTopic)
         this.getTopic('destroy_object',EventTopic)
+
+        this.chatroom.on('create_object',this.onCreateObject.bind(this));
         this.objects_topic = this.chatroom.getTopic('_objects',DictTopic<string,string>);
         this.objects_topic.onAdd.add(
             (id:string, type: string) => {
                 const obj = new (this.object_types.get(type)!)(this, id);
                 this.objects.set(id,obj);
                 obj.postConstructor();
+                this.doAfterTransitionFinish(obj.onStart.invoke);
             }
         );
         this.objects_topic.onRemove.add(
@@ -46,7 +52,7 @@ export class ObjectSyncClient{
                 obj.onDestroy();
                 // Clean up attributes
                 this.chatroom.allSubscribedTopics.forEach((topic: Topic<any>) => {
-                    if (topic.getName().startsWith(`a/${id}/`) && !topic.isPretended){
+                    if (topic.getName().startsWith(`a/${id}/`)){
                         this.chatroom.unsubscribe(topic.getName());
                     }
                 });
@@ -66,11 +72,15 @@ export class ObjectSyncClient{
     public createObject(type:string,parent_id:string): SObject{
         let id = uuidv4();
         this.chatroom.emit('create_object',{type:type,id:id,parent_id:parent_id});
+        return this.getObject(id);
+    }
+
+    private onCreateObject({type,id,parent_id}:{type:string,id:string,parent_id:string}): void{
         // simulate self._objects_topic.add(id,cls.frontend_type)
+        print('onCreateObject',id,type,parent_id);
         this.objects_topic?.add(id,type);
         let newObject = this.objects.get(id)!;
         newObject.setParent(parent_id);
-        return newObject;
     }
 
     public destroyObject(id:string): void{
@@ -89,6 +99,14 @@ export class ObjectSyncClient{
     /* Encapsulate ChatRoom */
     public getTopic<T extends Topic<any>>(topicName: string,topicType?: string|Constructor<T>): T {
         return this.chatroom.getTopic(topicName,topicType);
+    }
+
+    public emit(topicName: string, args: any): void{
+        this.chatroom.emit(topicName,args);
+    }
+
+    public on(topicName: string, callback: (args: any) => void): void{
+        this.chatroom.on(topicName,callback);
     }
 
     public unsubscribe(topic: Topic<any>): void{

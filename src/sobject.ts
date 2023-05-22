@@ -1,6 +1,6 @@
 import { IntTopic, Topic, StringTopic, ListTopic, SetTopic, DictTopic } from "chatroom-client/src"
 import { ObjectSyncClient } from "./client"
-import { Action, Constructor } from "chatroom-client/src/utils"
+import { Action, Callback, Constructor } from "chatroom-client/src/utils"
 import {ObjSetTopic, ObjListTopic, ObjDictTopic, ObjectTopic} from './topic';
 import { print } from "./devUtils"
 
@@ -21,15 +21,24 @@ export class SObject{
     onAddChild: Action<[SObject]> = new Action();
     onRemoveChild: Action<[SObject]> = new Action();
 
+    /**
+     * Called after the object is created and all attributes are loaded. (the transition is finished)
+     * Note that changes to attributes or other topics in this method will be recorded in a separate transition.
+     */
+    onStart: Action<[]> = new Action();
+
     protected readonly objectsync;
-    private readonly parent_id;
-    //private subscribed
+    private readonly parent_id: StringTopic;
+    private readonly tags: SetTopic
     protected readonly children: Set<SObject> = new Set();
+    private linkedCallbacks: {action: Action<any>, callback: Callback}[] = [];
+    private linkedCallbacks2: {element: Node, eventName: string, callback: Callback}[] = [];
 
     constructor(objectsync: ObjectSyncClient, id: string){
         this.objectsync = objectsync;
         this._id = id;
         this.parent_id = objectsync.getTopic(`parent_id/${id}`,StringTopic);
+        this.tags = objectsync.getTopic(`tags/${id}`,SetTopic);
         if (!this.isRoot){ 
             this.parentIdChangedCallback = this.parentIdChangedCallback.bind(this);
             this.parent_id.onSet2.add(this.parentIdChangedCallback);
@@ -37,11 +46,11 @@ export class SObject{
     }
 
     public postConstructor(): void{
-        print('postConstructor',this.parent_id.getValue());
         if(this.parent != null){
             this.onParentChangedTo(this.parent);
         }
     }
+
 
     public getAttribute<T extends Topic<any>|ObjectTopic<any>|ObjListTopic<any>|ObjSetTopic<any>|ObjDictTopic<any>>(topicName: string,topicType?: string|Constructor<T>): T {
         if (topicType == ObjectTopic){
@@ -58,6 +67,14 @@ export class SObject{
         }
 
         return this.objectsync.getTopic(`a/${this.id}/${topicName}`,topicType as any) as T;
+    }
+
+    protected emit(name: string, args:any={}): void{
+        this.objectsync.emit(`a/${this.id}/${name}`,args);
+    }
+
+    protected on(name: string, callback: Callback): void{
+        this.objectsync.on(`a/${this.id}/${name}`,callback);
     }
 
     private parentIdChangedCallback(oldValue: string, newValue: string): void{
@@ -83,10 +100,58 @@ export class SObject{
         newValue.addChild(this);
     }
 
+    /**
+     * Use this method to link a callback to an action. 
+     * The callback will be automatically bound to this object.
+     * The callback will be automatically removed when the object is destroyed.
+     * @param action 
+     * @param callback 
+     */
+    protected link(action: Action<any>, callback: Callback): void{ //TODO: offer remove when parent changed mode
+        callback = callback.bind(this);
+        this.linkedCallbacks.push({action: action, callback: callback});
+        action.add(callback);
+    }
+
+    protected unlink(action: Action<any,any>): void{
+        for(let i=0;i<this.linkedCallbacks.length;i++){
+            if (this.linkedCallbacks[i].action == action){
+                action.remove(this.linkedCallbacks[i].callback);
+                this.linkedCallbacks.splice(i,1);
+                return;
+            }
+        }
+    }
+
+
+    protected link2(element: Node,eventName: string , callback: Callback): void{ //TODO: offer remove when parent changed mode
+        callback = callback.bind(this);
+        this.linkedCallbacks2.push({element: element, eventName: eventName, callback: callback});
+        element.addEventListener(eventName,callback);
+    }
+
+    protected unlink2(element: Node, eventName: string): void{
+        for(let i=0;i<this.linkedCallbacks2.length;i++){
+            if (this.linkedCallbacks2[i].element == element && this.linkedCallbacks2[i].eventName == eventName){
+                element.removeEventListener(eventName,this.linkedCallbacks2[i].callback);
+                this.linkedCallbacks2.splice(i,1);
+                return;
+            }
+        }
+    }
+
+
     onDestroy(): void{
         this.parent_id.onSet2.remove(this.parentIdChangedCallback);
         //unsubscribe from all topics
         this.objectsync.unsubscribe(this.parent_id);
+        this.objectsync.unsubscribe(this.tags);
+        for(let {action,callback} of this.linkedCallbacks){
+            action.remove(callback);
+        }
+        for(let {element,eventName,callback} of this.linkedCallbacks2){
+            element.removeEventListener(eventName,callback);
+        }
     }
 
     public addChild(child: SObject): void{
@@ -115,4 +180,17 @@ export class SObject{
     public setParent(parent_id:string): void{
         this.parent_id.set(parent_id);
     }
+
+    // tag stuff
+
+    public addTag(tag: string): void{
+        this.tags.append(tag);
+    }
+    public removeTag(tag: string): void{
+        this.tags.remove(tag);
+    }
+    public hasTag(tag: string): boolean{
+        return this.tags.getValue().indexOf(tag) != -1;
+    }
+
 }
