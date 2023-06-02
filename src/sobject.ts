@@ -12,6 +12,8 @@ export class SObject{
     public get parent(): SObject{
         if (this.parent_id.getValue()=='')
             return null as any;
+        if (!this.objectsync.hasObject(this.parent_id.getValue())) // This happens when the parent is deleted and the child is being deleted
+            return null as any;
         return this.objectsync.getObject(this.parent_id.getValue());
     }
     public get isRoot(): boolean{
@@ -21,11 +23,12 @@ export class SObject{
     onAddChild: Action<[SObject]> = new Action();
     onRemoveChild: Action<[SObject]> = new Action();
 
-    /**
-     * Called after the object is created and all attributes are loaded. (the transition is finished)
-     * Note that changes to attributes or other topics in this method will be recorded in a separate transition.
-     */
-    onStart: Action<[]> = new Action();
+    private _onStartCalled: boolean = false;
+    get onStartCalled(): boolean{
+        return this._onStartCalled;
+    }
+    pendingChildOnStartCalls: (() => void)[] = [];
+    private topicsToInitBeforeStart: (Topic<any>|ObjectTopic<any>|ObjListTopic<any>|ObjSetTopic<any>|ObjDictTopic<any>)[] = [];
 
     protected readonly objectsync;
     private readonly parent_id: StringTopic;
@@ -39,16 +42,64 @@ export class SObject{
         this._id = id;
         this.parent_id = objectsync.getTopic(`parent_id/${id}`,StringTopic);
         this.tags = objectsync.getTopic(`tags/${id}`,SetTopic);
+        this.topicsToInitBeforeStart.push(this.parent_id,this.tags);
+    }
+    
+    /**
+     * Called right after the constructor.
+     */
+    public postConstructor(): void{
+        for(let topic of this.topicsToInitBeforeStart){
+            this.link(topic.onInit,this.checkOnStart);
+        }
+
+        this.objectsync.doAfterTransitionFinish(this.checkOnStart.bind(this));
+    }
+
+    private _onStart(){
+
+        this.onStart();
+
+        if(this.parent!=null)
+            this.onParentChangedTo(this.parent)
+        
         if (!this.isRoot){ 
             this.parentIdChangedCallback = this.parentIdChangedCallback.bind(this);
             this.parent_id.onSet2.add(this.parentIdChangedCallback);
         }
+        
+        this._onStartCalled = true;
+
+        for(let childOnStart of this.pendingChildOnStartCalls)
+            childOnStart();
+
+        this.postStart();
     }
 
-    public postConstructor(): void{
-        if(this.parent != null){
-            this.onParentChangedTo(this.parent);
+    /**
+     * Called after init value of all attributes are loaded and the parent's onStart is called.
+     */
+    protected onStart(){
+
+    }
+
+    protected postStart(){
+
+    }
+
+    private checkOnStart(): void{
+        if (this._onStartCalled)
+            return;
+        for(let topic of this.topicsToInitBeforeStart){
+            if (!topic.initialized)
+                return;
         }
+        if(!this.isRoot && !this.parent.onStartCalled)
+            // If the parent's onStart hasn't been called yet, wait for it to be called before calling onStart
+            this.parent.pendingChildOnStartCalls.push(this._onStart.bind(this));
+        else
+            // For pretended objects, wait for the transition to finish before calling onStart
+            this.objectsync.doAfterTransitionFinish(this._onStart.bind(this));
     }
 
 
@@ -65,8 +116,9 @@ export class SObject{
         if (topicType == ObjDictTopic){
             return new ObjDictTopic(this.objectsync.getTopic(`a/${this.id}/${topicName}`,DictTopic<string,string>),this.objectsync.getObject.bind(this.objectsync)) as T;
         }
-
-        return this.objectsync.getTopic(`a/${this.id}/${topicName}`,topicType as any) as T;
+        let newTopic = this.objectsync.getTopic(`a/${this.id}/${topicName}`,topicType as any) as T
+        this.topicsToInitBeforeStart.push(newTopic);
+        return newTopic;
     }
 
     protected emit(name: string, args:any={}): void{

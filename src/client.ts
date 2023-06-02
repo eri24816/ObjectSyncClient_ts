@@ -11,6 +11,9 @@ export class ObjectSyncClient{
     private readonly objects: Map<string,SObject> = new Map();
     private objects_topic: DictTopic<string,string>|null = null;
 
+    get clientId(): number{
+        return this.chatroom.clientId;
+    }
     record: (callback?: (() => void) | undefined, pretend?: boolean | undefined) => void
     clearPretendedChanges: () => void
     doAfterTransitionFinish: (callback: () => any) => void
@@ -43,7 +46,6 @@ export class ObjectSyncClient{
                 const obj = new (this.object_types.get(type)!)(this, id);
                 this.objects.set(id,obj);
                 obj.postConstructor();
-                this.doAfterTransitionFinish(obj.onStart.invoke);
             }
         );
         this.objects_topic.onRemove.add(
@@ -76,8 +78,6 @@ export class ObjectSyncClient{
     }
 
     private onCreateObject({type,id,parent_id}:{type:string,id:string,parent_id:string}): void{
-        // simulate self._objects_topic.add(id,cls.frontend_type)
-        print('onCreateObject',id,type,parent_id);
         this.objects_topic?.add(id,type);
         let newObject = this.objects.get(id)!;
         newObject.setParent(parent_id);
@@ -85,6 +85,10 @@ export class ObjectSyncClient{
 
     public destroyObject(id:string): void{
         this.chatroom.emit('destroy_object',{id:id});
+    }
+
+    public hasObject(id: string): boolean{
+        return this.objects.has(id);
     }
 
     public getObject(id: string): SObject{

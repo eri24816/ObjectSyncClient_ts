@@ -3,11 +3,16 @@ import { SObject } from "./sobject"
 import { Action } from "chatroom-client/src/utils"
 
 export class ObjectTopic<T extends SObject = SObject>{
+    get initialized(): boolean{
+        return this._topic.initialized;
+    }
+    onInit: Action<[T]> = new Action();
     onSet: Action<[T]> = new Action();
     onSet2: Action<[T,T]> = new Action();
     constructor(topic: StringTopic,map: (id:string)=>T){
         this._topic = topic;
         this._map = map;
+        this._topic.onInit.add((value)=>this.onInit.invoke(this.map(value)));
         this._topic.onSet.add((value)=>this.onSet.invoke(this.map(value)));
         this._topic.onSet2.add((old_value,new_value)=>this.onSet2.invoke(this.map(old_value),this.map(new_value)));
     }
@@ -34,6 +39,10 @@ export class ObjectTopic<T extends SObject = SObject>{
 }
 
 export class ObjListTopic<T extends SObject = SObject>{
+    get initialized(): boolean{
+        return this._topic.initialized;
+    }
+    onInit: Action<[T[]]> = new Action();
     onSet: Action<[T[]]> = new Action();
     onSet2: Action<[T[]]> = new Action();
     onInsert: Action<[T]> = new Action();
@@ -41,6 +50,7 @@ export class ObjListTopic<T extends SObject = SObject>{
     constructor(topic: ListTopic,map: (id:string)=>T){
         this._topic = topic;
         this._map = map;
+        this._topic.onInit.add((value)=>this.onInit.invoke(value.map(this._map)));
         this._topic.onSet.add((value)=>this.onSet.invoke(value.map(this._map)));
         this._topic.onSet2.add((value)=>this.onSet2.invoke(value.map(this._map)));
         this._topic.onInsert.add((value)=>this.onInsert.invoke(this._map(value)));
@@ -79,6 +89,10 @@ export class ObjListTopic<T extends SObject = SObject>{
 
 
 export class ObjSetTopic<T extends SObject = SObject>{
+    get initialized(): boolean{
+        return this._topic.initialized;
+    }
+    onInit: Action<[T[]]> = new Action();
     onSet: Action<[T[]]> = new Action();
     onSet2: Action<[T[]]> = new Action();
     onAppend: Action<[T]> = new Action();
@@ -86,6 +100,7 @@ export class ObjSetTopic<T extends SObject = SObject>{
     constructor(topic: SetTopic,map: (id:string)=>T){
         this._topic = topic;
         this._map = map;
+        this._topic.onInit.add((value)=>this.onInit.invoke(value.map(this._map)));
         this._topic.onSet.add((value)=>this.onSet.invoke(value.map(this._map)));
         this._topic.onSet2.add((value)=>this.onSet2.invoke(value.map(this._map)));
         this._topic.onAppend.add((value)=>this.onAppend.invoke(this._map(value)));
@@ -111,6 +126,10 @@ export class ObjSetTopic<T extends SObject = SObject>{
 
 
 export class ObjDictTopic<K extends string|number|symbol,T extends SObject = SObject>{
+    get initialized(): boolean{
+        return this._topic.initialized;
+    }
+    onInit: Action<[Map<K,T>]> = new Action();
     onSet: Action<[Map<K,T>]> = new Action();
     onSet2: Action<[Map<K,T>,Map<K,T>]> = new Action();
     onAdd: Action<[K,T]> = new Action();
@@ -119,6 +138,7 @@ export class ObjDictTopic<K extends string|number|symbol,T extends SObject = SOb
     constructor(topic: DictTopic<K,string>,map: (id:string)=>T){
         this._topic = topic;
         this._map = map;
+        this._topic.onInit.add((value)=>this.onInit.invoke(this._mapDict(value)));
         this._topic.onSet.add((value)=>this.onSet.invoke(this._mapDict(value)));
         this._topic.onSet2.add((old_value,new_value)=>this.onSet2.invoke(this._mapDict(old_value),this._mapDict(new_value)));
         this._topic.onAdd.add((key,value)=>this.onAdd.invoke(key,this._map(value)));
