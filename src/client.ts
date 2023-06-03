@@ -1,8 +1,8 @@
 import { ChatroomClient, DictTopic, EventTopic, StringTopic, Topic } from "chatroom-client/src"
 import { SObject } from "./sobject";
 import { Constructor } from "chatroom-client/src/utils"
-import { v4 as uuidv4 } from "uuid"
 import { print } from "./devUtils"
+import { IdGenerator } from "./utils"
 
 
 export class ObjectSyncClient{
@@ -32,6 +32,9 @@ export class ObjectSyncClient{
         if(!this.object_types.has('Root')){
             this.object_types.set('Root',SObject);
         }
+        this.chatroom.onConnected(() => {
+            IdGenerator.instance = new IdGenerator(this.clientId+'');
+        });
     }
 
     private defineTransitions(): void{
@@ -72,7 +75,8 @@ export class ObjectSyncClient{
     }
     
     public createObject(type:string,parent_id:string): SObject{
-        let id = uuidv4();
+        let id = IdGenerator.generateId();
+        print(`Creating object ${id} of type ${type} with parent ${parent_id}`);
         this.chatroom.emit('create_object',{type:type,id:id,parent_id:parent_id});
         return this.getObject(id);
     }
