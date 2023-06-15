@@ -109,7 +109,7 @@ export class ObjectSyncClient{
         return this.chatroom.getTopic(topicName,topicType);
     }
 
-    public emit(topicName: string, args: any): void{
+    public emit(topicName: string, args: any = {}): void{
         this.chatroom.emit(topicName,args);
     }
 

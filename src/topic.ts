@@ -15,6 +15,13 @@ export class ObjectTopic<T extends SObject = SObject>{
         this._topic.onInit.add((value)=>this.onInit.invoke(this.map(value)));
         this._topic.onSet.add((value)=>this.onSet.invoke(this.map(value)));
         this._topic.onSet2.add((old_value,new_value)=>this.onSet2.invoke(this.map(old_value),this.map(new_value)));
+        
+        let originalOnSetAdd = this.onSet.add.bind(this.onSet);
+        this.onSet.add = (callback) => {
+            originalOnSetAdd(callback);
+            if(this.getValue() !== null)
+                callback(this.getValue());
+        }
     }
     _topic: StringTopic;
     _map: (id:string)=>T;
@@ -55,6 +62,13 @@ export class ObjListTopic<T extends SObject = SObject>{
         this._topic.onSet2.add((value)=>this.onSet2.invoke(value.map(this._map)));
         this._topic.onInsert.add((value)=>this.onInsert.invoke(this._map(value)));
         this._topic.onPop.add((value)=>this.onPop.invoke(this._map(value)));
+
+        let originalOnSetAdd = this.onSet.add.bind(this.onSet);
+        this.onSet.add = (callback) => {
+            originalOnSetAdd(callback);
+            if(this.getValue() !== null)
+                callback(this.getValue());
+        }
     }
     _topic: ListTopic;
     _map: (id:string)=>T;
@@ -105,6 +119,13 @@ export class ObjSetTopic<T extends SObject = SObject>{
         this._topic.onSet2.add((value)=>this.onSet2.invoke(value.map(this._map)));
         this._topic.onAppend.add((value)=>this.onAppend.invoke(this._map(value)));
         this._topic.onRemove.add((value)=>this.onRemove.invoke(this._map(value)));
+
+        let originalOnSetAdd = this.onSet.add.bind(this.onSet);
+        this.onSet.add = (callback) => {
+            originalOnSetAdd(callback);
+            if(this.getValue() !== null)
+                callback(this.getValue());
+        }
     }
     _topic: SetTopic;
     _map: (id:string)=>T;
@@ -144,6 +165,13 @@ export class ObjDictTopic<K extends string|number|symbol,T extends SObject = SOb
         this._topic.onAdd.add((key,value)=>this.onAdd.invoke(key,this._map(value)));
         this._topic.onRemove.add((key:K)=>this.onRemove.invoke(key));
         this._topic.onChangeValue.add((key,value)=>this.onChangeValue.invoke(key,this._map(value)));
+
+        let originalOnSetAdd = this.onSet.add.bind(this.onSet);
+        this.onSet.add = (callback) => {
+            originalOnSetAdd(callback);
+            if(this.getValue() !== null)
+                callback(this.getValue());
+        }
     }
     _topic: DictTopic<K,string>;
     _map: (id:string)=>T;
