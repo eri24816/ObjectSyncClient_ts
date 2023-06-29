@@ -231,6 +231,20 @@ export class SObject{
         return result;
     }
 
+    public TopDownSearch<T extends SObject>(type: Constructor<T> = this.constructor as Constructor<T>, accept: (obj: SObject)=>boolean=null, stop: (obj: SObject)=>boolean=null): T[]{
+        let result: T[] = [];
+        if (this instanceof type){
+            if (accept == null || accept(this))
+                result.push(this as any);
+        }
+        if (stop == null || !stop(this)){
+            for (let child of this.children){
+                result = result.concat(child.TopDownSearch(type,accept,stop));
+            }
+        }
+        return result;
+    }
+
     public setParent(parent_id:string): void{
         this.parent_id.set(parent_id);
     }
