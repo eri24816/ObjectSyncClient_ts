@@ -104,19 +104,21 @@ export class SObject{
 
 
     public getAttribute<T extends Topic<any>|ObjectTopic<any>|ObjListTopic<any>|ObjSetTopic<any>|ObjDictTopic<any>>(topicName: string,topicType?: string|Constructor<T>): T {
+        let newTopic: T;
         if (topicType == ObjectTopic){
-            return new ObjectTopic(this.objectsync.getTopic(`a/${this.id}/${topicName}`,StringTopic),this.objectsync.getObject.bind(this.objectsync)) as T;
+            newTopic = new ObjectTopic(this.objectsync.getTopic(`a/${this.id}/${topicName}`,StringTopic),this.objectsync.getObject.bind(this.objectsync)) as T;
         }
-        if (topicType == ObjListTopic){
-            return new ObjListTopic(this.objectsync.getTopic(`a/${this.id}/${topicName}`,ListTopic),this.objectsync.getObject.bind(this.objectsync)) as T;
+        else if (topicType == ObjListTopic){
+            newTopic = new ObjListTopic(this.objectsync.getTopic(`a/${this.id}/${topicName}`,ListTopic),this.objectsync.getObject.bind(this.objectsync)) as T;
         }
-        if (topicType == ObjSetTopic){
-            return new ObjSetTopic(this.objectsync.getTopic(`a/${this.id}/${topicName}`,SetTopic),this.objectsync.getObject.bind(this.objectsync)) as T;
+        else if (topicType == ObjSetTopic){
+            newTopic = new ObjSetTopic(this.objectsync.getTopic(`a/${this.id}/${topicName}`,SetTopic),this.objectsync.getObject.bind(this.objectsync)) as T;
         }
-        if (topicType == ObjDictTopic){
-            return new ObjDictTopic(this.objectsync.getTopic(`a/${this.id}/${topicName}`,DictTopic<string,string>),this.objectsync.getObject.bind(this.objectsync)) as T;
+        else if (topicType == ObjDictTopic){
+            newTopic = new ObjDictTopic(this.objectsync.getTopic(`a/${this.id}/${topicName}`,DictTopic<string,string>),this.objectsync.getObject.bind(this.objectsync)) as T;
+        }else{
+            newTopic = this.objectsync.getTopic(`a/${this.id}/${topicName}`,topicType as any) as T
         }
-        let newTopic = this.objectsync.getTopic(`a/${this.id}/${topicName}`,topicType as any) as T
         this.topicsToInitBeforeStart.push(newTopic);
         return newTopic;
     }
