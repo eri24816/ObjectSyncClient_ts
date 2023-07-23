@@ -117,6 +117,10 @@ export class ObjectSyncClient{
         this.chatroom.on(topicName,callback);
     }
 
+    public makeRequest(serviceName: string, args: any = {}){
+        this.chatroom.makeRequest(serviceName,args);
+    }
+
     public unsubscribe(topic: Topic<any>): void{
         this.chatroom.unsubscribe(topic.getName());
     }

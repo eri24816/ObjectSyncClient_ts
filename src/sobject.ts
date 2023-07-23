@@ -131,6 +131,10 @@ export class SObject{
         this.objectsync.on(`a/${this.id}/${name}`,callback);
     }
 
+    protected makeRequest(serviceName: string, args: any = {}){
+        this.objectsync.makeRequest(`${this.id}/${serviceName}`,args);
+    }
+
     private parentIdChangedCallback(oldValue: string, newValue: string): void{
         //this.onParentChanged(this.objectsync.getObject_u(oldValue),this.objectsync.getObject_u(newValue));
         if(this.objectsync.getObject_u(oldValue)!=null)
