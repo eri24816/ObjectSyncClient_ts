@@ -201,6 +201,7 @@ export class SObject{
 
     onDestroy(): void{
         this.parent_id.onSet2.remove(this.parentIdChangedCallback);
+        this.parent?.onRemoveChild.invoke(this);
         //unsubscribe from all topics
         this.objectsync.unsubscribe(this.parent_id);
         this.objectsync.unsubscribe(this.tags);
