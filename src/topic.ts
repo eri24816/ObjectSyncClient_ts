@@ -154,7 +154,7 @@ export class ObjDictTopic<K extends string|number|symbol,T extends SObject = SOb
     onSet: Action<[Map<K,T>]> = new Action();
     onSet2: Action<[Map<K,T>,Map<K,T>]> = new Action();
     onAdd: Action<[K,T]> = new Action();
-    onRemove: Action<[K]> = new Action();
+    onPop: Action<[K]> = new Action();
     onChangeValue: Action<[K,T]> = new Action();
     constructor(topic: DictTopic<K,string>,map: (id:string)=>T){
         this._topic = topic;
@@ -163,7 +163,7 @@ export class ObjDictTopic<K extends string|number|symbol,T extends SObject = SOb
         this._topic.onSet.add((value)=>this.onSet.invoke(this._mapDict(value)));
         this._topic.onSet2.add((old_value,new_value)=>this.onSet2.invoke(this._mapDict(old_value),this._mapDict(new_value)));
         this._topic.onAdd.add((key,value)=>this.onAdd.invoke(key,this._map(value)));
-        this._topic.onRemove.add((key:K)=>this.onRemove.invoke(key));
+        this._topic.onPop.add((key:K)=>this.onPop.invoke(key));
         this._topic.onChangeValue.add((key,value)=>this.onChangeValue.invoke(key,this._map(value)));
 
         let originalOnSetAdd = this.onSet.add.bind(this.onSet);
@@ -199,8 +199,8 @@ export class ObjDictTopic<K extends string|number|symbol,T extends SObject = SOb
         return this._topic.add(key, value.id);
     }
 
-    remove(key:K){
-        return this._topic.remove(key);
+    pop(key:K){
+        return this._topic.pop(key);
     }
 
     getitem(){

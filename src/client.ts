@@ -51,7 +51,7 @@ export class ObjectSyncClient{
                 obj.postConstructor();
             }
         );
-        this.objects_topic.onRemove.add(
+        this.objects_topic.onPop.add(
             (id: string) => {
                 const obj = this.objects.get(id)!;
                 obj.onDestroy();
