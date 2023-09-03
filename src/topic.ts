@@ -143,6 +143,9 @@ export class ObjSetTopic<T extends SObject = SObject>{
     getValue(){
         return this._topic.getValue().map(this._map);
     }
+    has(object:T){
+        return this._topic.has(object.id);
+    }
 }
 
 
