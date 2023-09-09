@@ -12,9 +12,9 @@ export class ObjectTopic<T extends SObject = SObject>{
     constructor(topic: StringTopic,map: (id:string)=>T){
         this._topic = topic;
         this._map = map;
-        this._topic.onInit.add((value)=>this.onInit.invoke(this.map(value)));
-        this._topic.onSet.add((value)=>this.onSet.invoke(this.map(value)));
-        this._topic.onSet2.add((old_value,new_value)=>this.onSet2.invoke(this.map(old_value),this.map(new_value)));
+        this._topic.onInit.add((value)=>this.onInit.invoke(this._map(value)));
+        this._topic.onSet.add((value)=>this.onSet.invoke(this._map(value)));
+        this._topic.onSet2.add((old_value,new_value)=>this.onSet2.invoke(this._map(old_value),this._map(new_value)));
         
         let originalOnSetAdd = this.onSet.add.bind(this.onSet);
         this.onSet.add = (callback) => {
@@ -32,17 +32,8 @@ export class ObjectTopic<T extends SObject = SObject>{
         return this._topic.set(value.id);
     }
     getValue():T{
-        return this.map(this._topic.getValue());
+        return this._map(this._topic.getValue());
     }
-    map(value:string){
-        try{
-            return this._map(value);
-        }
-        catch(e){
-            return null as any; // Pretending this is C# ouo
-        }
-    }
-
 }
 
 export class ObjListTopic<T extends SObject = SObject>{

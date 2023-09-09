@@ -108,17 +108,23 @@ export class ObjectSyncClient{
     /* Encapsulate ChatRoom */
     public getTopic<T extends Topic<any>|ObjectTopic<any>|ObjListTopic<any>|ObjSetTopic<any>|ObjDictTopic<any>>(topicName: string,topicType?: string|Constructor<T>): T {
         let newTopic: T;
+        let idToObj = (id: string)=>{
+            if (this.hasObject(id))
+                return this.getObject(id);
+            else
+                return null;
+        }
         if (topicType == ObjectTopic){
-            newTopic = new ObjectTopic(this.chatroom.getTopic(topicName,StringTopic),this.getObject.bind(this)) as T;
+            newTopic = new ObjectTopic(this.chatroom.getTopic(topicName,StringTopic),idToObj) as T;
         }
         else if (topicType == ObjListTopic){
-            newTopic = new ObjListTopic(this.chatroom.getTopic(topicName,ListTopic),this.getObject.bind(this)) as T;
+            newTopic = new ObjListTopic(this.chatroom.getTopic(topicName,ListTopic),idToObj) as T;
         }
         else if (topicType == ObjSetTopic){
-            newTopic = new ObjSetTopic(this.chatroom.getTopic(topicName,SetTopic),this.getObject.bind(this)) as T;
+            newTopic = new ObjSetTopic(this.chatroom.getTopic(topicName,SetTopic),idToObj) as T;
         }
         else if (topicType == ObjDictTopic){
-            newTopic = new ObjDictTopic(this.chatroom.getTopic(topicName,DictTopic<string,string>),this.getObject.bind(this)) as T;
+            newTopic = new ObjDictTopic(this.chatroom.getTopic(topicName,DictTopic<string,string>),idToObj) as T;
         }else{
             newTopic = this.chatroom.getTopic(topicName,topicType as any) as T
         }
