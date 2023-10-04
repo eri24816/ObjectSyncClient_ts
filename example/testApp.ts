@@ -1,4 +1,4 @@
-import { DictTopic, StringTopic } from "chatroom-client/src"
+import { DictTopic, StringTopic } from "topicsync-client/src"
 import { ObjectSyncClient } from "../src/client";
 import { expose } from "../src/devUtils"
 import { SObject } from "../src/sobject"

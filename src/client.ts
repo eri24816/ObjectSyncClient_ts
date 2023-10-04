@@ -1,30 +1,30 @@
-import { ChatroomClient, DictTopic, EventTopic, ListTopic, SetTopic, StringTopic, Topic } from "chatroom-client/src"
+import { TopicsyncClient, DictTopic, EventTopic, ListTopic, SetTopic, StringTopic, Topic } from "topicsync-client/src"
 import { SObject } from "./sobject";
-import { Constructor } from "chatroom-client/src/utils"
+import { Constructor } from "topicsync-client/src/utils"
 import { print } from "./devUtils"
 import { IdGenerator } from "./utils"
 import { ObjDictTopic, ObjListTopic, ObjSetTopic, ObjectTopic } from "./topic"
 
 
 export class ObjectSyncClient{
-    private readonly chatroom;
+    private readonly topicsync;
     private readonly object_types: Map<string,Constructor<SObject>> = new Map();
     private readonly objects: Map<string,SObject> = new Map();
     private objects_topic: DictTopic<string,string>|null = null;
 
     get clientId(): number{
-        return this.chatroom.clientId;
+        return this.topicsync.clientId;
     }
     record: (callback?: (() => void) | undefined, pretend?: boolean | undefined) => void
     clearPretendedChanges: () => void
     doAfterTransitionFinish: (callback: () => any) => void
 
     constructor(host: string,object_types?: Map<string,Constructor<SObject>>){
-        this.chatroom = new ChatroomClient(host);
-        this.record = this.chatroom.record;
-        this.clearPretendedChanges = this.chatroom.clearPretendedChanges;
-        this.doAfterTransitionFinish = this.chatroom.doAfterTransitionFinish;
-        this.chatroom.onConnected(() => {
+        this.topicsync = new TopicsyncClient(host);
+        this.record = this.topicsync.record;
+        this.clearPretendedChanges = this.topicsync.clearPretendedChanges;
+        this.doAfterTransitionFinish = this.topicsync.doAfterTransitionFinish;
+        this.topicsync.onConnected(() => {
             this.defineTransitions();
         });
         if(object_types){
@@ -33,7 +33,7 @@ export class ObjectSyncClient{
         if(!this.object_types.has('Root')){
             this.object_types.set('Root',SObject);
         }
-        this.chatroom.onConnected(() => {
+        this.topicsync.onConnected(() => {
             IdGenerator.instance = new IdGenerator(this.clientId+'');
         });
     }
@@ -43,8 +43,8 @@ export class ObjectSyncClient{
         this.getTopic('create_object',EventTopic)
         this.getTopic('destroy_object',EventTopic)
 
-        this.chatroom.on('create_object',this.onCreateObject.bind(this));
-        this.objects_topic = this.chatroom.getTopic('_objects',DictTopic<string,string>);
+        this.topicsync.on('create_object',this.onCreateObject.bind(this));
+        this.objects_topic = this.topicsync.getTopic('_objects',DictTopic<string,string>);
         this.objects_topic.onAdd.add(
             (id:string, type: string) => {
                 const obj = new (this.object_types.get(type)!)(this, id);
@@ -57,9 +57,9 @@ export class ObjectSyncClient{
                 const obj = this.objects.get(id)!;
                 obj.onDestroy();
                 // Clean up attributes
-                this.chatroom.allSubscribedTopics.forEach((topic: Topic<any>) => {
+                this.topicsync.allSubscribedTopics.forEach((topic: Topic<any>) => {
                     if (topic.getName().startsWith(`a/${id}/`)){
-                        this.chatroom.unsubscribe(topic.getName());
+                        this.topicsync.unsubscribe(topic.getName());
                     }
                 });
                 this.objects.delete(id);
@@ -78,7 +78,7 @@ export class ObjectSyncClient{
     public createObject(type:string,parent_id:string): SObject{
         let id = IdGenerator.generateId();
         print(`Creating object ${id} of type ${type} with parent ${parent_id}`);
-        this.chatroom.emit('create_object',{type:type,id:id,parent_id:parent_id});
+        this.topicsync.emit('create_object',{type:type,id:id,parent_id:parent_id});
         return this.getObject(id);
     }
 
@@ -89,7 +89,7 @@ export class ObjectSyncClient{
     }
 
     public destroyObject(id:string): void{
-        this.chatroom.emit('destroy_object',{id:id});
+        this.topicsync.emit('destroy_object',{id:id});
     }
 
     public hasObject(id: string): boolean{
@@ -105,7 +105,7 @@ export class ObjectSyncClient{
     public getObject_u(id: string): SObject|undefined{
         return this.objects.get(id);
     }
-    /* Encapsulate ChatRoom */
+    /* Encapsulate TopicSync */
     public getTopic<T extends Topic<any>|ObjectTopic<any>|ObjListTopic<any>|ObjSetTopic<any>|ObjDictTopic<any>>(topicName: string,topicType?: string|Constructor<T>): T {
         let newTopic: T;
         let idToObj = (id: string)=>{
@@ -115,49 +115,49 @@ export class ObjectSyncClient{
                 return null;
         }
         if (topicType == ObjectTopic){
-            newTopic = new ObjectTopic(this.chatroom.getTopic(topicName,StringTopic),idToObj) as T;
+            newTopic = new ObjectTopic(this.topicsync.getTopic(topicName,StringTopic),idToObj) as T;
         }
         else if (topicType == ObjListTopic){
-            newTopic = new ObjListTopic(this.chatroom.getTopic(topicName,ListTopic),idToObj) as T;
+            newTopic = new ObjListTopic(this.topicsync.getTopic(topicName,ListTopic),idToObj) as T;
         }
         else if (topicType == ObjSetTopic){
-            newTopic = new ObjSetTopic(this.chatroom.getTopic(topicName,SetTopic),idToObj) as T;
+            newTopic = new ObjSetTopic(this.topicsync.getTopic(topicName,SetTopic),idToObj) as T;
         }
         else if (topicType == ObjDictTopic){
-            newTopic = new ObjDictTopic(this.chatroom.getTopic(topicName,DictTopic<string,string>),idToObj) as T;
+            newTopic = new ObjDictTopic(this.topicsync.getTopic(topicName,DictTopic<string,string>),idToObj) as T;
         }else{
-            newTopic = this.chatroom.getTopic(topicName,topicType as any) as T
+            newTopic = this.topicsync.getTopic(topicName,topicType as any) as T
         }
         return newTopic;
     }
 
     public emit(topicName: string, args: any = {}): void{
-        this.chatroom.emit(topicName,args);
+        this.topicsync.emit(topicName,args);
     }
 
     public on(topicName: string, callback: (args: any) => void): void{
-        this.chatroom.on(topicName,callback);
+        this.topicsync.on(topicName,callback);
     }
 
     public makeRequest(serviceName: string, args: any = {}){
-        this.chatroom.makeRequest(serviceName,args);
+        this.topicsync.makeRequest(serviceName,args);
     }
 
     public unsubscribe(topic: Topic<any>): void{
-        this.chatroom.unsubscribe(topic.getName());
+        this.topicsync.unsubscribe(topic.getName());
     }
 
     public undo(obj:SObject|null): void{
         if (obj)
-            this.chatroom.makeRequest('undo',{id:obj.id});
+            this.topicsync.makeRequest('undo',{id:obj.id});
         else
-            this.chatroom.makeRequest('undo',{});
+            this.topicsync.makeRequest('undo',{});
     }
 
     public redo(obj:SObject|null): void{
         if (obj)
-            this.chatroom.makeRequest('redo',{id:obj.id});
+            this.topicsync.makeRequest('redo',{id:obj.id});
         else
-            this.chatroom.makeRequest('redo',{});
+            this.topicsync.makeRequest('redo',{});
     }
 }

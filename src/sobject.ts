@@ -1,6 +1,6 @@
-import { IntTopic, Topic, StringTopic, ListTopic, SetTopic, DictTopic } from "chatroom-client/src"
+import { IntTopic, Topic, StringTopic, ListTopic, SetTopic, DictTopic } from "topicsync-client/src"
 import { ObjectSyncClient } from "./client"
-import { Action, Callback, Constructor } from "chatroom-client/src/utils"
+import { Action, Callback, Constructor } from "topicsync-client/src/utils"
 import {ObjSetTopic, ObjListTopic, ObjDictTopic, ObjectTopic} from './topic';
 import { print } from "./devUtils"
 

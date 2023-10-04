@@ -1,6 +1,6 @@
-import { Change, DictTopic, ListTopic, SetTopic, StringTopic } from "chatroom-client"
+import { Change, DictTopic, ListTopic, SetTopic, StringTopic } from "topicsync-client"
 import { SObject } from "./sobject"
-import { Action } from "chatroom-client/src/utils"
+import { Action } from "topicsync-client/src/utils"
 
 export class ObjectTopic<T extends SObject = SObject>{
     get initialized(): boolean{
