@@ -19,6 +19,7 @@ export class SObject{
     public get isRoot(): boolean{
         return this.id == 'root';
     }
+    protected destroyed: boolean = false;
     
     onAddChild: Action<[SObject]> = new Action();
     onRemoveChild: Action<[SObject]> = new Action();
@@ -186,6 +187,7 @@ export class SObject{
 
 
     onDestroy(): void{
+        this.destroyed = true;
         this.parent_id.onSet2.remove(this.parentIdChangedCallback);
         this.parent?.onRemoveChild.invoke(this);
         //unsubscribe from all topics
