@@ -110,8 +110,12 @@ export class SObject{
         return newTopic;
     }
 
-    protected emit(name: string, args:any={}): void{
-        this.objectsync.emit(`a/${this.id}/${name}`,args);
+    public unsubscribe(topicName: string): void{
+        this.objectsync.unsubscribe(this.getAttribute(topicName));
+    }
+
+    protected emit(name: string, args:any={},sendSubscribe: boolean = false): void{
+        this.objectsync.emit(`a/${this.id}/${name}`,args,sendSubscribe);
     }
 
     protected on(name: string, callback: Callback): void{

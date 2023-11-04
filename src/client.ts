@@ -40,10 +40,11 @@ export class ObjectSyncClient{
 
     private defineTransitions(): void{
         // callbacks go brrrr
-        this.getTopic('create_object',EventTopic)
-        this.getTopic('destroy_object',EventTopic)
 
-        this.topicsync.on('create_object',this.onCreateObject.bind(this));
+        // This callback is only called when the event is emitted locally by this client
+        // because it is not subscribed.
+        this.topicsync.on('create_object',this.onCreateObject.bind(this),false);
+
         this.objects_topic = this.topicsync.getTopic('_objects',DictTopic<string,string>);
         this.objects_topic.onAdd.add(
             (id:string, type: string) => {
@@ -131,8 +132,8 @@ export class ObjectSyncClient{
         return newTopic;
     }
 
-    public emit(topicName: string, args: any = {}): void{
-        this.topicsync.emit(topicName,args);
+    public emit(topicName: string, args: any = {},sendSubscribe: boolean = false): void{
+        this.topicsync.emit(topicName,args,sendSubscribe);
     }
 
     public on(topicName: string, callback: (args: any) => void): void{
