@@ -219,16 +219,17 @@ export class SObject{
         return this.children;
     }
 
-    public getChildrenOfType<T extends SObject>(type: Constructor<T>): Set<T>{
-        let result = new Set<T>();
+    public getChildrenOfType<T extends SObject>(type: Constructor<T>): T[]{
+        let result = [];
         for (let child of this.children){
+            print(child.constructor);
             if (child instanceof type)
-                result.add(child);
+                result.push(child);
         }
         return result;
     }
 
-    public TopDownSearch<T extends SObject>(type: Constructor<T> = this.constructor as Constructor<T>, accept: (obj: SObject)=>boolean=null, stop: (obj: SObject)=>boolean=null): T[]{
+    public TopDownSearch<T extends SObject>(type: Constructor<T> = this.constructor as Constructor<T>, accept: (obj: T)=>boolean=null, stop: (obj: SObject)=>boolean=null): T[]{
         let result: T[] = [];
         if (this instanceof type){
             if (accept == null || accept(this))
