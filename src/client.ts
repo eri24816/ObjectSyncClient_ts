@@ -19,8 +19,8 @@ export class ObjectSyncClient{
     clearPretendedChanges: () => void
     doAfterTransitionFinish: (callback: () => any) => void
 
-    constructor(host: string,object_types?: Map<string,Constructor<SObject>>){
-        this.topicsync = new TopicsyncClient(host);
+    constructor(host: string,object_types?: Map<string,Constructor<SObject>>,onConnectionClosed?: ()=>void){
+        this.topicsync = new TopicsyncClient(host,onConnectionClosed);
         this.record = this.topicsync.record;
         this.clearPretendedChanges = this.topicsync.clearPretendedChanges;
         this.doAfterTransitionFinish = this.topicsync.doAfterTransitionFinish;
@@ -140,8 +140,8 @@ export class ObjectSyncClient{
         this.topicsync.on(topicName,callback);
     }
 
-    public makeRequest(serviceName: string, args: any = {}){
-        this.topicsync.makeRequest(serviceName,args);
+    public makeRequest(serviceName: string, args: any = {}, onResponse?: (response: any) => void){
+        this.topicsync.makeRequest(serviceName,args,onResponse);
     }
 
     public unsubscribe(topic: Topic<any>): void{
